@@ -40,7 +40,7 @@ from pytorch_quantization.tensor_quant import QuantDescriptor
 from pytorch_quantization.nn.modules import _utils
 from absl import logging as quant_logging
 
-from det3d.models.backbones.scn import SparseBasicBlock
+from mmdet3d.models.layers import SparseBasicBlock
 from spconv.pytorch.conv import SparseConvolution, SparseConvTensor
 from spconv.core import ConvAlgo
 from typing import List, Optional, Tuple, Union

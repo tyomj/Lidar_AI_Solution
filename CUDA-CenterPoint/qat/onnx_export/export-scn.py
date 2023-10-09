@@ -20,7 +20,6 @@
 # DEALINGS IN THE SOFTWARE.
 
 import sys; sys.path.insert(0, ".")
-from det3d.models.backbones.scn import SpMiddleResNetFHD
 import torch
 import pickle
 import argparse
@@ -29,10 +28,13 @@ import argparse
 import funcs
 import exptool
 from tools.sparseconv_quantization import initialize, disable_quantization, quant_sparseconv_module, quant_add_module
+from mmengine.runner import Runner
+from mmengine.config import Config
  
 if __name__ == "__main__":
     initialize()
     parser = argparse.ArgumentParser(description="Export scn to onnx file")
+    parser.add_argument("--config", type=str, default=None, help="config file")
     parser.add_argument("--in-channel", type=int, default=5, help="SCN num of input channels")
     parser.add_argument("--ckpt", type=str, default=None, help="SCN Checkpoint (scn backbone checkpoint)")
     parser.add_argument("--input", type=str, default=None, help="input pickle data, random if there have no input")
@@ -41,7 +43,15 @@ if __name__ == "__main__":
     parser.add_argument("--use-quantization", action="store_true", help="use quantization")
     args = parser.parse_args()
 
-    model = SpMiddleResNetFHD(args.in_channel).cuda().eval().half()
+    cfg = Config.fromfile(args.config)
+    cfg.launcher = 'none'
+    cfg.default_hooks.checkpoint = None
+    cfg.work_dir = './work_dirs'
+    cfg.load_from = args.ckpt
+    runner = Runner.from_cfg(cfg)
+
+    model = runner.model.eval().cuda().half()
+    # TODO: add quantization  
     if args.use_quantization:
         # QAT training using the fusionBn mode, so loading the checkpoint needs to be followed by the fusion operation
         quant_sparseconv_module(model)
@@ -67,10 +77,8 @@ if __name__ == "__main__":
         model.conv1[0].conv2.output_precision = "fp16"
         model.conv1[0].quant_add.output_precision = "int8"    
     else:
-        print("🔥export original model🔥") 
-        if args.ckpt:
-            model = funcs.load_scn_backbone_checkpoint(model, args.ckpt, use_quant =False)
-        model = funcs.layer_fusion_bn_relu(model)
+        print("🔥export original model🔥")
+        model = model.pts_middle_encoder
           
     print("Fusion model:")
     print(model)

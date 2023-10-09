@@ -21,10 +21,9 @@
 
 import torch
 import collections
-from det3d.models.backbones.scn import SpMiddleResNetFHD
 from spconv.pytorch import SparseSequential
 from spconv.pytorch import conv
-from det3d.models.backbones.scn import SparseBasicBlock
+from mmdet3d.models.layers import SparseBasicBlock
 import cumm.tensorview as tv
 import numpy as np
 
@@ -130,7 +129,7 @@ def fuse_sparse_basic_block(self, is_fuse_bn = False, is_fuse_relu=True):
         delattr(self, "bn1")
         delattr(self, "bn2")
 
-def layer_fusion_bn(model : SpMiddleResNetFHD):
+def layer_fusion_bn(model):
     # fuse conv except for conv_input During training (To get a better mAP)
     for conv_name in ["conv2", "conv3", "conv4", "extra_conv"]:
         conv_instance = getattr(model, conv_name)
@@ -153,7 +152,7 @@ def layer_fusion_bn(model : SpMiddleResNetFHD):
             fuse_sparse_basic_block(block, is_fuse_bn = True, is_fuse_relu =False)
     return model
 
-def layer_fusion_relu(model : SpMiddleResNetFHD):
+def layer_fusion_relu(model):
     # fuse all conv
     for conv_name in ["conv_input", "conv2", "conv3", "conv4", "extra_conv"]:
         conv_instance = getattr(model, conv_name) #
@@ -182,7 +181,7 @@ def layer_fusion_relu(model : SpMiddleResNetFHD):
 
 
 # export for orignal model
-def layer_fusion_bn_relu(model : SpMiddleResNetFHD):
+def layer_fusion_bn_relu(model):
     # fuse all conv
     for conv_name in ["conv_input", "conv2", "conv3", "conv4", "extra_conv"]:
         conv_instance = getattr(model, conv_name)

@@ -68,6 +68,20 @@ def register_node(fn):
         setattr(fn_module, fn_name, internal_forward)
     return make_hook
 
+@register_node("torch.nn.BatchNorm1d.forward")
+def symbolic_batchnorm(self, ilayer, y, x):
+    register_tensor(y)
+    print(f"   --> BatchNorm{ilayer} -> Input {get_tensor_id(x)}, Output {get_tensor_id(y)}")
+
+    nodes.append(
+        helper.make_node(
+            "BatchNormalization", [get_tensor_id(x)], [get_tensor_id(y)], f"bn{ilayer}",
+            epsilon = self.eps,
+            momentum = self.momentum,
+            spatial = 1
+        )
+    )
+
 
 @register_node("spconv.conv.SparseConvolution.forward")
 def symbolic_sparse_convolution(self, ilayer, y, x):
@@ -328,7 +342,7 @@ def export_onnx(model, voxels, coors, batch_size, spatial_shape, save_onnx, save
     with torch.no_grad():
         register_tensor(voxels)
         enable_trace = True
-        y = model(voxels, coors, batch_size, spatial_shape)[0]
+        y = model(voxels, coors, batch_size)
         enable_trace = False
 
     if save_tensor is not None:
